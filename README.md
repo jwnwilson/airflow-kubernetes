@@ -9,28 +9,34 @@ required but highly recommended to keep your GKE cluster isolated.
 # Create airflow service using these guides:
 
 https://developer.hashicorp.com/terraform/tutorials/kubernetes/gke
-
 https://towardsdatascience.com/deploying-airflow-on-google-kubernetes-engine-with-helm-28c3d9f7a26b
 
-Commands ran:
+# Commands ran
 
+## Install mac dependencies
 brew install gcloud kubectl helm
+
+## Setup GCP and terraform
 
 gcloud init
 gcloud auth application-default login
+
+cd infra/tf
 terraform init
 terraform apply
 
-gcloud container clusters get-credentials $(terraform output -raw kubernetes_cluster_name) --region $(terraform output -raw region)
+`gcloud container clusters get-credentials $(terraform output -raw kubernetes_cluster_name) --region $(terraform output -raw region)`
+
+## Install kubernetes dashboard
 
 cd infra/kube
 kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.7.0/aio/deploy/recommended.yaml 
 kubectl apply -f https://raw.githubusercontent.com/hashicorp/learn-terraform-provision-gke-cluster/main/kubernetes-dashboard-admin.rbac.yaml
 kubectl apply -f service_account.yaml
 
-## image pull secret
+## Setup kubernetes image pull permissions
 
-This can be the default service account with viewer role
+This can be the default service account with viewer role:
 
 kubectl create secret docker-registry artifact-registry \
 --docker-server=https://LOCATION-docker.pkg.dev \
@@ -40,7 +46,7 @@ kubectl create secret docker-registry artifact-registry \
 
 kubectl edit serviceaccount default --namespace default
 
-Add:
+Add to bottom:
 ```
 imagePullSecrets:
 - name: artifact-registry
