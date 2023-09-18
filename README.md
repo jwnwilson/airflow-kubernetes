@@ -23,22 +23,47 @@ terraform apply
 
 gcloud container clusters get-credentials $(terraform output -raw kubernetes_cluster_name) --region $(terraform output -raw region)
 
+cd infra/kube
 kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.7.0/aio/deploy/recommended.yaml 
 kubectl apply -f https://raw.githubusercontent.com/hashicorp/learn-terraform-provision-gke-cluster/main/kubernetes-dashboard-admin.rbac.yaml
+kubectl apply -f service_account.yaml
 
-kubectl -n kubernetes-dashboard describe secret $(kubectl -n kube-system get secret | grep service-controller-token | awk '{print $1}')
+## image pull secret
 
-kubectl proxy 
+This can be the default service account with viewer role
 
+kubectl create secret docker-registry artifact-registry \
+--docker-server=https://LOCATION-docker.pkg.dev \
+--docker-email=SERVICE-ACCOUNT-EMAIL \
+--docker-username=_json_key \
+--docker-password="$(cat KEY-FILE)"
+
+kubectl edit serviceaccount default --namespace default
+
+Add:
+```
+imagePullSecrets:
+- name: artifact-registry
+```
+
+## Push airflow image
+
+cd source
+docker build . -t europe-west1-docker.pkg.dev/noel-wilson-kube/airflow/airflow-test:latest
+docker push europe-west1-docker.pkg.dev/noel-wilson-kube/airflow/airflow-test:latest
+
+## Setup airflow
+
+kubectl create namespace airflow 
 helm repo add apache-airflow https://airflow.apache.org
 helm show values apache-airflow/airflow > values.yaml
-helm upgrade --install airflow apache-airflow/airflow -n airflow  \\n  -f values.yaml \\n  --debug
+helm upgrade --install airflow apache-airflow/airflow -n airflow -f values.yaml --debug
+
+# Go to proxy to debug
+
+kubectl -n kubernetes-dashboard create token admin-user
+kubectl proxy 
 
 # Next steps
 
-1. Add container repo for airflow container
-2. link kubernetes <-> container repo
-3. deploy new image to kubernetes
-4. Run example dag
-5. Create example docker container with standalone task
-6. Create example dag with kubernetes dag
+1. Create example dag with kubernetes dag

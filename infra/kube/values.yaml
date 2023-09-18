@@ -62,8 +62,8 @@ airflowVersion: "2.6.2"
 # Images
 images:
   airflow:
-    repository: ~
-    tag: ~
+    repository: europe-west1-docker.pkg.dev/noel-wilson-kube/airflow/airflow-test
+    tag: latest
     # Specifying digest takes precedence over tag.
     digest: ~
     pullPolicy: IfNotPresent
